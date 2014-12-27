@@ -41,7 +41,20 @@ page.onLoadFinished = function(status) {
       window.callPhantom({
         sender: "HTMLInspector",
         message: errors.map(function(error) {
-          return "[" + error.rule + "] " + error.message
+            var originalStringify = JSON.stringify;
+            JSON.stringify = function(obj) {
+              var seen = [];
+              var result = originalStringify(obj, function(key, val) {
+                if (val instanceof HTMLElement) { return val.outerHTML }
+                if (typeof val == "object") {
+                  if (seen.indexOf(val) >= 0) { return "[Circular]"; }
+                  seen.push(val);
+                }
+                return val;
+              });
+              return result;
+            };
+          return "[[" + error.rule + "]] - [[" + error.message + "]] - [[" + JSON.stringify(error.context) + "]]"
         }).join("\n")
       })
       window.close()
